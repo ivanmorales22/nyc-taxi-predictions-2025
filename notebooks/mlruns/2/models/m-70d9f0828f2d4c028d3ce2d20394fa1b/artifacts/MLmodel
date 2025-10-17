@@ -1,0 +1,14 @@
+artifact_path: file:c:/Users/ivanm/5to Semestre/Proyecto de Ciencia de Datos/nyc-taxi-predictions-2025/notebooks/mlruns/2/models/m-70d9f0828f2d4c028d3ce2d20394fa1b/artifacts
+flavors:
+  sklearn:
+    code: null
+    pickled_model: model.pkl
+    serialization_format: cloudpickle
+    sklearn_version: 1.7.2
+mlflow_version: 3.4.0
+model_id: m-70d9f0828f2d4c028d3ce2d20394fa1b
+model_size_bytes: 99
+model_uuid: m-70d9f0828f2d4c028d3ce2d20394fa1b
+prompts: null
+run_id: 6b3745b620f947acbf0c03e5c9110bda
+utc_time_created: '2025-10-15 03:46:12.925334'
