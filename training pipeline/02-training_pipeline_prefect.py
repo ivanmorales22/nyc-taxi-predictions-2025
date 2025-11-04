@@ -13,6 +13,7 @@ from mlflow.models.signature import infer_signature
 from sklearn.metrics import root_mean_squared_error
 from sklearn.feature_extraction import DictVectorizer
 from prefect import flow, task
+from mlflow import MlflowClient
 
 @task(name="Read Data")
 def read_data(file_path: str) -> pd.DataFrame:
@@ -214,12 +215,50 @@ def train_best_model(X_train, X_val, y_train, y_val, dv, best_params) -> None:
     return None
 
 @task(name="Add best model to model registry")
-def add_best_model_to_registry() -> None:
-    run_id = "71ef7b7598f54a0c817a6648bb0e1ea7"
-    """Add the best model to the MLflow model registry"""
-    mlflow.register_model(
-        run_id=run_id,
-        run_uri=f"runs:/{run_id}/model"
+def add_best_model_to_registry(experiment_name : str, model_name : str) -> None:
+
+    
+    client = MlflowClient()
+
+    try:
+        experiment = client.get_experiment_by_name(experiment_name)
+        if experiment is None:
+            print(f"ERROR: Experimento '{experiment_name}' no encontrado.")
+            return
+        experiment_id = experiment.experiment_id
+    except Exception as e:
+        print(f"Error al buscar el experimento: {e}")
+        return
+    
+    runs = mlflow.search_runs(
+        experiment_ids=[experiment_id],
+        order_by=["metrics.rmse ASC"],
+        output_format="list"
+    )
+
+# Obtener el mejor run
+    if len(runs) > 0:
+        best_run = runs[0]
+        print("🏆 Champion Run encontrado:")
+        print(f"Run ID: {best_run.info.run_id}")
+        print(f"RMSE: {best_run.data.metrics['rmse']}")
+        print(f"Params: {best_run.data.params}")
+    else:
+        print("⚠️ No se encontraron runs con métrica RMSE.")
+
+    result = mlflow.register_model(
+        model_uri=f"runs:/{best_run.info.run_id}/model",
+        name=model_name
+    )
+
+    version = result.version
+    print(f"Modelo registrado como Versión: {version}")
+
+    print(f"Asignando alias 'champion' a la Versión {version}...")
+    client.set_registered_model_alias(
+        name=model_name,
+        alias="champion_test", # El alias es sin el @
+        version=version
     )
 
 
@@ -232,6 +271,7 @@ def main_flow(year: int, month_train: str, month_val: str) -> None:
     
     load_dotenv(override=True)  # Carga las variables del archivo .env
     EXPERIMENT_NAME = "/Users/ivan.morales@iteso.mx/nyc-taxi-experiment-prefect"
+    MODEL_REGISTRY_NAME = "workspace.default.nyc-taxi-model-prefect"
 
     mlflow.set_tracking_uri("databricks")
     experiment = mlflow.set_experiment(experiment_name=EXPERIMENT_NAME)
@@ -248,6 +288,12 @@ def main_flow(year: int, month_train: str, month_val: str) -> None:
     
     # Train
     train_best_model(X_train, X_val, y_train, y_val, dv, best_params)
+
+    # Add best model to model registry
+    add_best_model_to_registry(
+        experiment_name=EXPERIMENT_NAME,
+        model_name=MODEL_REGISTRY_NAME
+    )
 
 if __name__ == "__main__":
     main_flow(year=2025, month_train="01", month_val="02")
