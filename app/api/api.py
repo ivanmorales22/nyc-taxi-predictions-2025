@@ -4,16 +4,18 @@ from fastapi import FastAPI
 from pydantic import BaseModel
 from mlflow import MlflowClient
 from dotenv import load_dotenv
+import pandas as pd
 import os
+import xgboost as xgb
 
 load_dotenv(override=True)  # Carga las variables del archivo .env
 
 mlflow.set_tracking_uri("databricks")
 client = MlflowClient()
 
-EXPERIMENT_NAME = "/Users/ivan.morales@iteso.mx/nyc-taxi-experiment-prefect"
+EXPERIMENT_NAME = "/Users/ivan.morales@iteso.mx/nyc-taxi-experiment-prefect_test1"
 
-run_ = mlflow.search_runs(order_by=['Metrics.rmsc ASC'],
+run_ = mlflow.search_runs(order_by=['Metrics.rmse ASC'],
                           output_format="list",
                           experiment_names=[EXPERIMENT_NAME]
                           )[0]
@@ -46,15 +48,24 @@ def preprocess(input_data):
         'PU_DO': input_data.PULocationID + "_" + input_data.DOLocationID,
         'trip_distance': input_data.trip_distance,
     }
+    X = dv.transform([input_dict])
 
-    return dv.transform(input_dict)
+    # Names depend on sklearn version
+    try:
+        cols = dv.get_feature_names_out()
+    except AttributeError:
+        cols = dv.get_feature_names()
+
+    # 
+    X_df = pd.DataFrame(X.toarray(), columns=cols)
+
+    return X_df
 
 def predict(input_data):
 
     X_val = preprocess(input_data)
 
-    return "4" #return champion_model.predict(X_val)
-
+    return champion_model.predict(X_val)
 app = FastAPI()
 
 class InputData(BaseModel):

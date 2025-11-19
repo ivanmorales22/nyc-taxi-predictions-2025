@@ -1,0 +1,28 @@
+name: nyc-taxi-app  # Nombre del proyecto de la aplicación
+
+services:
+  # 🧩 Servicio de Frontend (UI - Streamlit)
+  ui:
+    image: nyc-taxi-ui-image:latest                # Nombre y etiqueta de la imagen
+    container_name: nyc-taxi-ui-container          # Nombre asignado al contenedor
+    build:
+      context: ./app/ui                            # Carpeta donde está el código del frontend
+      dockerfile: Dockerfile                       # Nombre del Dockerfile dentro del contexto
+    ports:
+      - "8501:8501"                                # Puerto UI → http://localhost:8501
+    network_mode: host                             # Usa la red del host (localhost)
+    command: streamlit run main.py --server.port=8501 --server.address=0.0.0.0
+
+  # 🧠 Servicio de Backend (API - FastAPI)
+  api:
+    image: nyc-taxi-api-image:latest               # Nombre y etiqueta de la imagen
+    container_name: nyc-taxi-api-container         # Nombre asignado al contenedor
+    build:
+      context: ./app/api                           # Carpeta donde está el código de la API
+      dockerfile: Dockerfile                       # Nombre del Dockerfile dentro del contexto
+    ports:
+      - "8000:8000"                                # Puerto API → http://localhost:8000
+    env_file:
+      - ./.env                                     # Carga variables desde el archivo .env en la raíz
+    network_mode: host                             # Usa la red del host (localhost)
+    command: uvicorn api:app --host 0.0.0.0 --port 8000

@@ -1,0 +1,7 @@
+fastapi==0.121.0
+mlflow==3.5.1
+mlflow_skinny==3.5.1
+mlflow_tracing==3.5.1
+pydantic==2.12.4
+python-dotenv==1.2.1
+xgboost==3.1.1
